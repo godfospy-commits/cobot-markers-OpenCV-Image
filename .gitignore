@@ -1,0 +1,12 @@
+# YOLO Weights
+*.pt
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Local run outputs (folders with huge images and videos)
+runs/
+
+# Dataset cache
+*.cache
