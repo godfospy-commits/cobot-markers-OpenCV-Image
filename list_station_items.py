@@ -1,6 +1,4 @@
 # list_station_items.py
-# แสดงรายชื่อ items ทั้งหมดใน RoboDK station ที่เปิดอยู่ตอนนี้
-# ใช้เพื่อหาชื่อโปรแกรม/สัญญาณที่ควบคุมกริปเปอร์ (เช่น "Gripper_Close", "Gripper_Open")
 
 from robodk import robolink
 

@@ -1,6 +1,4 @@
 # list_cameras.py
-# แสดงรายชื่อกล้องทั้งหมดที่ Windows มองเห็น พร้อม index ที่ใช้เรียกใน OpenCV
-# ใช้เพื่อหาว่ากล้อง USB ของคุณอยู่ index ไหนกันแน่
 
 try:
     from pygrabber.dshow_graph import FilterGraph

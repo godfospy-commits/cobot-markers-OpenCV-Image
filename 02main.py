@@ -1,8 +1,4 @@
 # 02main.py
-# ระบบตรวจจับกล่อง 360 องศา (PCA Moments + Dual Probe + Homography Vector)
-# -> แปลงพิกัดพิกเซลเป็นพิกัดจริงด้วย Homography
-# -> ขยับ target "pick01" และ "prepick01" ไปตำแหน่งจุดกึ่งกลางกล่อง + หมุนรอบแกน Z ตามทิศทาง 360° จริง
-# -> สั่งรันโปรแกรม "pick" แล้วตามด้วย "Place" ใน RoboDK
 
 import os
 import time
@@ -10,36 +6,32 @@ import numpy as np
 import cv2
 from robodk import robolink, robomath
 
-# ------------------- ค่าคงที่และการตั้งค่า -------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CALIB_HOMOGRAPHY_PATH = os.path.join(BASE_DIR, "calib_homography.npy")
 CALIB_ANGLE_PATH = os.path.join(BASE_DIR, "calib_angle_offset.npy")
 
 USB_CAMERA_INDEX = 0  # Logi C270 HD WebCam
-MIN_BOX_AREA = 3000   # พื้นที่ต่ำสุดของกล่อง (พิกเซล) เพื่อกรองสัญญาณรบกวนออก
+MIN_BOX_AREA = 3000
 
 ROBOT_NAME = "UR3"
 TARGET_PICK_NAME = "pick01"
 TARGET_PREPICK_NAME = "prepick01"
 PROGRAM_PICK_NAME = "pick"
 PROGRAM_PLACE_NAME = "Place"
-BOX_OBJECT_NAME = "BOX"  # Object กล่องใน RoboDK ที่จะขยับตามกล่องจริง
+BOX_OBJECT_NAME = "BOX"
 
-# ปรับ Offset พิกัดตำแหน่งกล่องใน RoboDK (มม.)
 BOX_OFFSET_X = 0.0
 BOX_OFFSET_Y = 0.0
 BOX_OFFSET_Z = 0.0
 
-# ชดเชยองศาโมเดล 3D เริ่มต้นให้ตรงแนวกับกล่องจริง (90.0 องศา เพื่อให้แนวตั้งและแนวนอนตรงกับภาพกล้อง 100%)
 MODEL_ANGLE_OFFSET = 90.0
 GRIPPER_ANGLE_OFFSET = 0.0
 
-MAX_ANGLE_DEG = 180.0      # รองรับการหมุนรอบทิศ 360 องศา (-180° ถึง +180°)
-INVERT_ROBOT_ANGLE = False # ถ้ากล่องหมุนสวนทางกับของจริง ให้เปลี่ยนเป็น True
+MAX_ANGLE_DEG = 180.0
+INVERT_ROBOT_ANGLE = False
 
-MOVE_COOLDOWN_SEC = 5      # ระยะเวลารอระหว่างการหยิบแต่ละรอบ (วินาที)
+MOVE_COOLDOWN_SEC = 5
 
-# ตัวแปรสำหรับจำทิศทางหัวกล่องข้ามเฟรม (Hysteresis Memory ป้องกันการสลับทิศกระพริบ)
 last_heading_sign = 1.0
 heading_switch_counter = 0
 
@@ -177,10 +169,8 @@ def run_pick_and_place(robot, target_pick, target_prepick, prog_pick, prog_place
     delta_x = world_x - orig_pick_abs[0, 3]
     delta_y = world_y - orig_pick_abs[1, 3]
 
-    # คำนวณมุมหมุนรวม (รวม GRIPPER_ANGLE_OFFSET เพื่อชดเชยหน้ากริปเปอร์)
     total_angle = robot_angle_deg + GRIPPER_ANGLE_OFFSET
 
-    # หมุนรอบแกน Z ของโต๊ะ/โลก
     rot = robomath.rotz(robomath.pi * total_angle / 180.0)
 
     orig_pick_rot = robomath.Mat(orig_pick_abs)
@@ -203,7 +193,6 @@ def run_pick_and_place(robot, target_pick, target_prepick, prog_pick, prog_place
     new_prepick_abs[1, 3] = orig_prepick_abs[1, 3] + delta_y
     new_prepick_abs[2, 3] = orig_prepick_abs[2, 3]
 
-    # คำนวณ Inverse Kinematics แบบ Elbow-Up
     sol_pick = solve_elbow_up_ik(robot, new_pick_abs, orig_pick_joints)
     sol_prepick = solve_elbow_up_ik(robot, new_prepick_abs, orig_prepick_joints)
 
@@ -230,7 +219,6 @@ def run_pick_and_place(robot, target_pick, target_prepick, prog_pick, prog_place
     prog_place.RunProgram()
     prog_place.WaitFinished()
 
-    # คืนค่า target กลับตำแหน่งเดิม
     target_pick.setPoseAbs(orig_pick_abs)
     target_pick.setJoints(orig_pick_joints)
     target_prepick.setPoseAbs(orig_prepick_abs)
@@ -279,7 +267,6 @@ def detect_box_360_robust(frame, min_area=MIN_BOX_AREA):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     hsv_blur = cv2.GaussianBlur(hsv, (5, 5), 0)
 
-    # ช่วงสีน้ำตาล/เหลือง/ส้ม ของกล่องกระดาษ
     lower_brown = np.array([5, 25, 40], dtype=np.uint8)
     upper_brown = np.array([40, 255, 255], dtype=np.uint8)
 
@@ -306,7 +293,6 @@ def detect_box_360_robust(frame, min_area=MIN_BOX_AREA):
 
     cx, cy, vx, vy, theta_rad, length = pca_result
 
-    # จุด Probe ทั้ง 2 ฝั่งตามแนวแกนยาวของกล่อง
     probe_dist = max(35.0, length * 0.28)
     p1_x = int(np.clip(cx + probe_dist * vx, 15, frame.shape[1] - 16))
     p1_y = int(np.clip(cy + probe_dist * vy, 15, frame.shape[0] - 16))
@@ -314,7 +300,6 @@ def detect_box_360_robust(frame, min_area=MIN_BOX_AREA):
     p2_x = int(np.clip(cx - probe_dist * vx, 15, frame.shape[1] - 16))
     p2_y = int(np.clip(cy - probe_dist * vy, 15, frame.shape[0] - 16))
 
-    # ตรวจจับสีแดง/ชมพูของโลโก้ 'B'
     probe_radius = int(max(15, min(35, length * 0.15)))
     red_mask1 = cv2.inRange(hsv, np.array([0, 45, 30]), np.array([15, 255, 255]))
     red_mask2 = cv2.inRange(hsv, np.array([150, 45, 30]), np.array([180, 255, 255]))
@@ -393,7 +378,6 @@ def main():
 
     RDK, robot, target_pick, target_prepick, prog_pick, prog_place, box_obj, tracking_frame = connect_robodk()
 
-    # บันทึก Rotation และความสูง Z เริ่มต้นของ object BOX
     orig_box_rot = None
     orig_box_z = 0.0
     if box_obj is not None:
@@ -438,18 +422,14 @@ def main():
             h_sign = det_result["heading_sign"]
             arrow_end = det_result["arrow_end"]
 
-            # แปลงพิกัดโลกจริง (มม.)
             world_x, world_y = pixel_to_world(H, raw_cx, raw_cy)
 
-            # แปลงเวกเตอร์ทิศทางหัวกล่องจากพิกเซล -> พิกัดโลกจริงด้วย Homography Matrix โดยตรง
             w_head_x, w_head_y = pixel_to_world(H, raw_cx + 50.0 * head_vx, raw_cy + 50.0 * head_vy)
             dw_x = w_head_x - world_x
             dw_y = w_head_y - world_y
 
-            # คำนวณมุมจริงในระนาบโลกของหุ่นยนต์ (World Coordinate Frame)
             raw_world_angle = np.degrees(np.arctan2(dw_y, dw_x))
 
-            # คำนวณมุมหุ่นยนต์รอบทิศ (-180° ถึง +180°) พร้อมชดเชยทิศทาง
             robot_angle = raw_world_angle + model_angle_offset
             if INVERT_ROBOT_ANGLE:
                 robot_angle = -robot_angle
@@ -457,7 +437,6 @@ def main():
             robot_angle = (robot_angle + 180.0) % 360.0 - 180.0
 
             # ==========================================================
-            # ขยับและหมุน Object BOX ใน RoboDK แบบ 360 องศา
             # ==========================================================
             if box_obj is not None and orig_box_rot is not None:
                 try:
@@ -470,15 +449,11 @@ def main():
                 except Exception as e:
                     pass
 
-            # --- วาดภาพ Graphics บนหน้าต่าง OpenCV ---
-            # 1. กรอบกล่องรอบนอก (ม่วง)
             cv2.polylines(annotated, [box_pts], isClosed=True, color=(255, 0, 255), thickness=2)
 
-            # 2. จุดกึ่งกลางกล่อง
             cv2.circle(annotated, (int(raw_cx), int(raw_cy)), 7, (0, 0, 255), -1)
             cv2.circle(annotated, (int(raw_cx), int(raw_cy)), 3, (255, 255, 255), -1)
 
-            # 3. จุด Probe ทั้ง 2 ฝั่ง (จุดสีแดง = ฝั่งที่ตรวจพบโลโก้ 'B', จุดสีน้ำเงิน = ฝั่งตรงข้าม)
             c1 = (0, 0, 255) if h_sign > 0 else (255, 100, 0)
             c2 = (0, 0, 255) if h_sign < 0 else (255, 100, 0)
             cv2.circle(annotated, p1, 12, c1, 2)
@@ -486,10 +461,8 @@ def main():
             cv2.putText(annotated, f"B:{int(s1)}", (p1[0] - 15, p1[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.45, c1, 1)
             cv2.putText(annotated, f"B:{int(s2)}", (p2[0] - 15, p2[1] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.45, c2, 1)
 
-            # 4. ลูกศรสีเหลืองชี้ทิศทางหัวกล่อง (ชี้ไปทางโลโก้ 'B')
             cv2.arrowedLine(annotated, (int(raw_cx), int(raw_cy)), arrow_end, (0, 255, 255), 3, tipLength=0.25)
 
-            # 5. ข้อมูลสถานะบนหน้าจอ (HUD)
             time_left = max(0.0, MOVE_COOLDOWN_SEC - (now - last_move_time))
             status_pick = "READY TO PICK" if time_left == 0.0 else f"WAIT COOLDOWN ({time_left:.1f}s)"
 
@@ -506,7 +479,6 @@ def main():
                         (15, 98), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (200, 200, 200), 1)
 
             # ==========================================================
-            # สั่งรัน Pick & Place เมื่อพ้นช่วง Cooldown
             # ==========================================================
             if (now - last_move_time) > MOVE_COOLDOWN_SEC:
                 print(f"\n[DETECT] ตรวจพบกล่องที่พิกัด ({world_x:.1f}, {world_y:.1f}) มม. | มุม {robot_angle:.1f}°")

@@ -1,6 +1,4 @@
 # move_box_slider.py
-# สคริปต์ควบคุมการขยับกล่อง BOX ใน RoboDK แบบ Manual GUI (ใช้ OpenCV Trackbars)
-# ใช้สำหรับทดสอบตำแหน่ง พิกัด X, Y, Z และมุมหมุน องศา ใน RoboDK Station ได้ทันทีโดยไม่ต้องเปิดกล้อง
 
 import numpy as np
 import cv2
@@ -8,7 +6,6 @@ from robodk import robolink, robomath
 
 BOX_OBJECT_NAME = "BOX"
 
-# ช่วงพิกัดในการทดสอบ (มม.)
 X_MIN, X_MAX = -600, 600
 Y_MIN, Y_MAX = -600, 600
 Z_MIN, Z_MAX = 0, 500
@@ -74,8 +71,6 @@ def main():
 
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_AUTOSIZE)
 
-    # สร้าง Trackbars สำหรับเลื่อนแกนต่างๆ
-    # OpenCV trackbar รับได้เฉพาะค่า >= 0 จึงต้องบวก offset
     cv2.createTrackbar("Pos X (mm)", WINDOW_NAME, init_x - X_MIN, X_MAX - X_MIN, nothing)
     cv2.createTrackbar("Pos Y (mm)", WINDOW_NAME, init_y - Y_MIN, Y_MAX - Y_MIN, nothing)
     cv2.createTrackbar("Pos Z (mm)", WINDOW_NAME, init_z - Z_MIN, Z_MAX - Z_MIN, nothing)
@@ -87,13 +82,11 @@ def main():
     canvas = np.zeros((260, 500, 3), dtype=np.uint8)
 
     while True:
-        # อ่านค่าจาก Trackbars
         pos_x = cv2.getTrackbarPos("Pos X (mm)", WINDOW_NAME) + X_MIN
         pos_y = cv2.getTrackbarPos("Pos Y (mm)", WINDOW_NAME) + Y_MIN
         pos_z = cv2.getTrackbarPos("Pos Z (mm)", WINDOW_NAME) + Z_MIN
         angle = cv2.getTrackbarPos("Angle (deg)", WINDOW_NAME) + ANGLE_MIN
 
-        # อัปเดต Pose ใน RoboDK
         try:
             rot = robomath.rotz(robomath.pi * angle / 180.0)
             box_abs_pose = rot * orig_box_rot
@@ -104,7 +97,6 @@ def main():
         except Exception as e:
             print(f"[WARNING] เกิดข้อผิดพลาดในการตั้งค่า Pose: {e}")
 
-        # วาดหน้าจอ UI
         canvas[:] = (30, 30, 30)
         cv2.putText(canvas, "RoboDK Manual Box Controller", (20, 35),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)

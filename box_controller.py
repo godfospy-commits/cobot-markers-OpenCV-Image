@@ -1,5 +1,4 @@
 # box_controller.py
-# คลาสสำหรับจัดการและควบคุมการขยับ/หมุน Object กล่อง (BOX) ใน RoboDK Station
 
 import numpy as np
 from robodk import robolink, robomath
@@ -97,7 +96,6 @@ class BoxController:
         if not self.is_valid():
             return False
 
-        # คำนวณมุมหมุน
         effective_angle = -angle_deg if self.invert_angle else angle_deg
         if self.max_angle_deg > 0:
             effective_angle = max(-self.max_angle_deg, min(self.max_angle_deg, effective_angle))
