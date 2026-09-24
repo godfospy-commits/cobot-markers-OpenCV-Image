@@ -1,5 +1,0 @@
-train: train/images
-val: train/images
-
-nc: 2
-names: ['class0', 'box']

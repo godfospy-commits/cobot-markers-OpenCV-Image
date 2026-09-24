@@ -1,0 +1,29 @@
+{
+  "description": "Configuration for ArUco Marker Calibration (DICT_4X4_1000)",
+  "marker_dict": "DICT_4X4_1000",
+  "marker_ids": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "marker_world_points": {
+    "1": [
+      431.4,
+      199.6
+    ],
+    "2": [
+      431.4,
+      -40.4
+    ],
+    "3": [
+      251.4,
+      -40.4
+    ],
+    "4": [
+      251.4,
+      199.6
+    ]
+  },
+  "marker_size_mm": 100.0
+}
